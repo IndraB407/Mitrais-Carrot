@@ -26,6 +26,7 @@ app.use(express.urlencoded({
 }))
 
 app.use('/api', require('./src/routes/auth'))
+app.use('/api', require('./src/routes/bazaar'))
 
 app.get('/', (req, res) => {
     return res.json({

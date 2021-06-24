@@ -2,35 +2,38 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 const response = require('../helpers/response')
 const User = require('../models/user')
+const {
+    APP_KEY
+} = process.env
 
 const register = (req, res) => {
-
-    bcrypt.hash(req.body.password, 10, function (err, encryptedPassword) {
+    const {username, password, email, name, role_id} = req.body
+    bcrypt.hash(password, 10, function (err, encryptedPassword) {
         if (err) {
             return response(res, 400, false, `${err}`)
         }
         let user = new User({
-            username: req.body.username,
+            username: username,
             password: encryptedPassword,
-            email: req.body.email,
-            name: req.body.name,
-            role_id: req.body.role_id
+            email: email,
+            name: name,
+            role_id: role_id
         })
-        console.log(user);
         user.save()
             .then(user => {
-                console.log('ngga gagal om');
                 return response(res, 200, true, 'User added successfully')
             })
             .catch(err => {
-                console.log('eh yang ini om');
                 return response(res, 400, false, err)
             })
     })
 }
 
 const login = (req, res) => {
-    const {username, password} = req.body
+    const {
+        username,
+        password
+    } = req.body
     User.findOne({
             $or: [{
                 username: username
@@ -39,12 +42,16 @@ const login = (req, res) => {
         .then(user => {
             if (user) {
                 bcrypt.compare(password, user.password, function (err, result) {
-                    console.log(result);
                     if (err) {
                         return response(res, 400, false, `${err}`)
                     }
                     if (result) {
-                        let token = jwt.sign({name: user.name}, 'verySecretValue', {expiresIn: '10m'})
+                        let token = jwt.sign({
+                            name: user.name,
+                            role: user.role_id
+                        }, APP_KEY, {
+                            expiresIn: '10m'
+                        })
                         return response(res, 200, true, 'login success', token)
 
                     } else {
@@ -57,7 +64,21 @@ const login = (req, res) => {
         })
 }
 
+const getAllUser = (req, res) => {
+    let {
+        role
+    } = req.userData
+    if (role === 2) {
+        User.find({}).then((data) => {
+            return response(res, 200, true, 'list all user', data)
+        })
+    } else {
+        return response(res, 400, false, 'sorry you dont have authorization to access this file')
+    }
+}
+
 module.exports = {
     register,
-    login
+    login,
+    getAllUser
 }
